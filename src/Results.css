@@ -1,0 +1,182 @@
+/* ================= RESULTS / REPORT =================
+   Keeps the original CarbonAI dark assessment aesthetic.
+   This is intentionally scoped only to the results screen.
+================= */
+
+.results-page {
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 120px 20px 70px;
+  background:
+    radial-gradient(circle at 78% 18%, rgba(48, 180, 112, 0.14), transparent 30%),
+    radial-gradient(circle at 12% 82%, rgba(99, 230, 162, 0.05), transparent 28%),
+    linear-gradient(180deg, #06110c 0%, #07150f 100%);
+  color: #f5f7f4;
+}
+
+.results-section {
+  width: 100%;
+  max-width: 1000px;
+}
+
+.results-card {
+  width: 100%;
+  padding: 55px;
+  text-align: center;
+  background: rgba(18, 31, 25, 0.97);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: 24px;
+  box-shadow: 0 30px 90px rgba(0, 0, 0, 0.38);
+}
+
+.results-card .badge {
+  margin-bottom: 18px;
+}
+
+.results-card h1 {
+  margin: 0 0 20px;
+  color: #f5f7f4;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: clamp(42px, 5vw, 62px);
+  font-weight: 400;
+  line-height: 1.02;
+  letter-spacing: -3px;
+}
+
+.results-card h1 span {
+  color: #63e6a2;
+}
+
+.results-description {
+  max-width: 680px;
+  margin: 0 auto 35px;
+  color: #9eaaa3;
+  font-size: 15px;
+  line-height: 1.7;
+}
+
+.results-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  margin: 30px 0;
+}
+
+.result-highlight {
+  padding: 24px 20px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.025);
+}
+
+.result-highlight span,
+.result-highlight small {
+  display: block;
+  color: #7d8982;
+  font-size: 11px;
+}
+
+.result-highlight strong {
+  display: block;
+  margin-top: 8px;
+  color: #f4f7f5;
+  font-size: 27px;
+}
+
+.result-highlight small {
+  margin-top: 5px;
+}
+
+.breakdown,
+.recommendation {
+  margin-top: 25px;
+  padding: 24px;
+  text-align: left;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.025);
+}
+
+.breakdown h2,
+.recommendation h2 {
+  margin: 0 0 18px;
+  color: #f4f7f5;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 23px;
+  font-weight: 400;
+}
+
+.breakdown-list {
+  display: grid;
+  gap: 11px;
+}
+
+.breakdown-list div {
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  color: #aebbb3;
+  font-size: 13px;
+}
+
+.breakdown-list div:last-child {
+  padding-bottom: 0;
+  border-bottom: 0;
+}
+
+.breakdown-list strong {
+  color: #63e6a2;
+}
+
+.recommendation p {
+  margin: 0;
+  color: #aebbb3;
+  font-size: 13px;
+  line-height: 1.7;
+}
+
+.results-actions {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 14px;
+  margin-top: 30px;
+}
+
+.results-actions .carbonai-secondary {
+  padding: 14px 22px;
+}
+
+@media (max-width: 720px) {
+  .results-page {
+    padding: 105px 14px 40px;
+    align-items: flex-start;
+  }
+
+  .results-card {
+    padding: 34px 22px;
+    border-radius: 20px;
+  }
+
+  .results-card h1 {
+    font-size: 43px;
+    letter-spacing: -2px;
+  }
+
+  .results-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .results-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .results-actions button {
+    width: 100%;
+  }
+}

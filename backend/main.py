@@ -51,12 +51,11 @@ class EmissionInput(BaseModel):
     waste: float = 0
 
 
-@app.post("/calculate")
-def calculate_footprint(data: EmissionInput):
+def get_factor_map(industry: str):
     response = (
         supabase.table("emission_factors")
         .select("*")
-        .eq("industry", data.industry)
+        .eq("industry", industry)
         .execute()
     )
     factors = response.data
@@ -70,8 +69,47 @@ def calculate_footprint(data: EmissionInput):
         )
         factors = response.data
 
-    factor_map = {f["category"]: f["factor_value"] for f in factors}
+    return {f["category"]: f["factor_value"] for f in factors}
 
+
+def calculate_category_totals(inputs: dict, factor_map: dict):
+    return {
+        category: round(value * factor_map.get(category, 0), 2)
+        for category, value in inputs.items()
+    }
+
+
+def build_breakdown(category_totals: dict):
+    energy = category_totals["electricity"] + category_totals["natural_gas"]
+    travel = (
+        category_totals["petrol"]
+        + category_totals["diesel"]
+        + category_totals["air_travel"]
+        + category_totals["hotels"]
+        + category_totals["commuting"]
+    )
+    waste = category_totals["waste"]
+    total_kgco2e = round(energy + travel + waste, 2)
+
+    breakdown_pct = {}
+    if total_kgco2e > 0:
+        breakdown_pct = {
+            "energy": round((energy / total_kgco2e) * 100),
+            "transport": round((travel / total_kgco2e) * 100),
+            "waste": round((waste / total_kgco2e) * 100),
+        }
+
+    return {
+        "energy_kg": round(energy, 2),
+        "travel_kg": round(travel, 2),
+        "waste_kg": round(waste, 2),
+        "breakdown_pct": breakdown_pct,
+        "total_kgco2e": total_kgco2e,
+    }
+
+
+@app.post("/calculate")
+def calculate_footprint(data: EmissionInput):
     inputs = {
         "electricity": data.electricity,
         "natural_gas": data.natural_gas,
@@ -83,36 +121,16 @@ def calculate_footprint(data: EmissionInput):
         "waste": data.waste,
     }
 
-    category_totals = {}
-    for category, value in inputs.items():
-        factor = factor_map.get(category, 0)
-        category_totals[category] = round(value * factor, 2)
-
-    total = round(sum(category_totals.values()), 2)
-
-    energy = category_totals["electricity"] + category_totals["natural_gas"]
-    transport = (
-        category_totals["petrol"]
-        + category_totals["diesel"]
-        + category_totals["air_travel"]
-        + category_totals["commuting"]
-    )
-    waste = category_totals["waste"] + category_totals["hotels"]
-
-    breakdown_pct = {}
-    if total > 0:
-        breakdown_pct = {
-            "energy": round((energy / total) * 100),
-            "transport": round((transport / total) * 100),
-            "waste": round((waste / total) * 100),
-        }
+    factor_map = get_factor_map(data.industry)
+    category_totals = calculate_category_totals(inputs, factor_map)
+    breakdown = build_breakdown(category_totals)
 
     return {
-        "total_tco2e": total,
+        "total_kgco2e": breakdown["total_kgco2e"],
+        "total_tco2e": round(breakdown["total_kgco2e"] / 1000, 4),
         "category_totals": category_totals,
-        "breakdown_pct": breakdown_pct,
+        "breakdown_pct": breakdown["breakdown_pct"],
     }
-
 
 
 # ---- Auth ----
@@ -173,7 +191,6 @@ def get_current_user(authorization: str = Header(...)):
         raise HTTPException(status_code=401, detail="Invalid or expired token")
 
 
-# Example protected route to test it
 from fastapi import Depends
 
 @app.get("/me")
@@ -245,55 +262,124 @@ def submit_assessment(data: AssessmentInput, current_user = Depends(get_current_
     ]
     supabase_admin.table("emission_entries").insert(entries_to_insert).execute()
 
-    # 3. Calculate footprint (reuse the same logic as /calculate)
-    factors_response = (
-        supabase.table("emission_factors").select("*").eq("industry", data.industry).execute()
-    )
-    factors = factors_response.data
-    if not factors:
-        factors_response = (
-            supabase.table("emission_factors").select("*").eq("industry", "general").execute()
-        )
-        factors = factors_response.data
+    # 3. Calculate footprint using the same factor source as /calculate
+    factor_map = get_factor_map(data.industry)
+    category_totals = calculate_category_totals(entry_categories, factor_map)
+    breakdown = build_breakdown(category_totals)
 
-    factor_map = {f["category"]: f["factor_value"] for f in factors}
-    category_totals = {
-        cat: round(val * factor_map.get(cat, 0), 2) for cat, val in entry_categories.items()
-    }
-    total = round(sum(category_totals.values()), 2)
-
-    energy = category_totals["electricity"] + category_totals["natural_gas"]
-    transport = (
-        category_totals["petrol"] + category_totals["diesel"]
-        + category_totals["air_travel"] + category_totals["commuting"]
-    )
-    waste = category_totals["waste"] + category_totals["hotels"]
-
-    breakdown_pct = {}
-    if total > 0:
-        breakdown_pct = {
-            "energy": round((energy / total) * 100),
-            "transport": round((transport / total) * 100),
-            "waste": round((waste / total) * 100),
-        }
+    total_kgco2e = breakdown["total_kgco2e"]
+    total_tco2e = round(total_kgco2e / 1000, 4)
 
     # 4. Save the result
     result_response = supabase_admin.table("results").insert({
         "company_id": company_id,
-        "total_tco2e": total,
-        "category_breakdown": breakdown_pct,
+        "total_tco2e": total_tco2e,
+        "category_breakdown": breakdown["breakdown_pct"],
     }).execute()
 
     return {
         "company_id": company_id,
-        "total_tco2e": total,
+        "company_name": company["name"],
+        "industry": company["industry"],
+        "total_kgco2e": total_kgco2e,
+        "total_tco2e": total_tco2e,
         "category_totals": category_totals,
-        "breakdown_pct": breakdown_pct,
+        "breakdown_pct": breakdown["breakdown_pct"],
+    }
+
+
+# ---- Dashboard: latest result for the authenticated user ----
+
+@app.get("/results")
+def get_dashboard_results(current_user = Depends(get_current_user)):
+    company_response = (
+        supabase_admin.table("companies")
+        .select("*")
+        .eq("user_id", current_user.id)
+        .order("created_at", desc=True)
+        .limit(1)
+        .execute()
+    )
+
+    if not company_response.data:
+        raise HTTPException(status_code=404, detail="No company assessment found")
+
+    company = company_response.data[0]
+    company_id = company["id"]
+
+    result_response = (
+        supabase_admin.table("results")
+        .select("*")
+        .eq("company_id", company_id)
+        .order("calculated_at", desc=True)
+        .limit(1)
+        .execute()
+    )
+
+    if not result_response.data:
+        raise HTTPException(status_code=404, detail="No results found for this company")
+
+    entries_response = (
+        supabase_admin.table("emission_entries")
+        .select("*")
+        .eq("company_id", company_id)
+        .execute()
+    )
+
+    factor_map = get_factor_map(company.get("industry") or "general")
+    category_totals = {}
+    for entry in entries_response.data:
+        category = entry["category"]
+        value = float(entry["value"])
+        category_totals[category] = round(
+            category_totals.get(category, 0) + value * factor_map.get(category, 0),
+            2,
+        )
+
+    breakdown = build_breakdown({
+        "electricity": category_totals.get("electricity", 0),
+        "natural_gas": category_totals.get("natural_gas", 0),
+        "petrol": category_totals.get("petrol", 0),
+        "diesel": category_totals.get("diesel", 0),
+        "air_travel": category_totals.get("air_travel", 0),
+        "hotels": category_totals.get("hotels", 0),
+        "commuting": category_totals.get("commuting", 0),
+        "waste": category_totals.get("waste", 0),
+    })
+
+    result = result_response.data[0]
+    return {
+        "company_id": company_id,
+        "company_name": company["name"],
+        "industry": company["industry"],
+        "location": company.get("location"),
+        "employee_count": company.get("employee_count"),
+        "total_kgco2e": breakdown["total_kgco2e"],
+        "total_tco2e": float(result["total_tco2e"]),
+        "category_totals": category_totals,
+        "breakdown": {
+            "energy_kg": breakdown["energy_kg"],
+            "travel_kg": breakdown["travel_kg"],
+            "waste_kg": breakdown["waste_kg"],
+        },
+        "breakdown_pct": breakdown["breakdown_pct"],
+        "calculated_at": result["calculated_at"],
     }
 
 
 @app.get("/results/{company_id}")
 def get_results(company_id: str, current_user = Depends(get_current_user)):
+    company_response = (
+        supabase_admin.table("companies")
+        .select("id")
+        .eq("id", company_id)
+        .eq("user_id", current_user.id)
+        .limit(1)
+        .execute()
+    )
+    if not company_response.data:
+        raise HTTPException(status_code=404, detail="Company not found")
+
     response = (
         supabase.table("results")
         .select("*")
@@ -305,13 +391,14 @@ def get_results(company_id: str, current_user = Depends(get_current_user)):
     if not response.data:
         raise HTTPException(status_code=404, detail="No results found for this company")
     return response.data[0]
+
+
 # ---- AI Action Plan ----
 
 @app.get("/action-plan")
 def get_action_plan(current_user=Depends(get_current_user)):
     user_id = current_user.id
 
-    # Get the user's most recent company
     company_response = (
         supabase_admin.table("companies")
         .select("*")
@@ -330,7 +417,6 @@ def get_action_plan(current_user=Depends(get_current_user)):
     company = company_response.data[0]
     company_id = company["id"]
 
-    # Get the company's emission entries
     entries_response = (
         supabase_admin.table("emission_entries")
         .select("*")
@@ -339,8 +425,8 @@ def get_action_plan(current_user=Depends(get_current_user)):
     )
 
     entries = entries_response.data
+    factor_map = get_factor_map(company.get("industry") or "general")
 
-    # Convert emission categories into Scope 1, 2 and 3
     scope1_categories = {"natural_gas", "petrol", "diesel"}
     scope2_categories = {"electricity"}
 
@@ -351,30 +437,33 @@ def get_action_plan(current_user=Depends(get_current_user)):
     for entry in entries:
         category = entry["category"]
         value = float(entry["value"])
+        emissions_kgco2e = value * factor_map.get(category, 0)
 
         if category in scope1_categories:
-            scope1 += value
+            scope1 += emissions_kgco2e
         elif category in scope2_categories:
-            scope2 += value
+            scope2 += emissions_kgco2e
         else:
-            scope3 += value
+            scope3 += emissions_kgco2e
 
-    # Generate the AI action plan
+    scope1_tco2e = round(scope1 / 1000, 4)
+    scope2_tco2e = round(scope2 / 1000, 4)
+    scope3_tco2e = round(scope3 / 1000, 4)
+
     action_plan = generate_action_plan(
         company_name=company["name"],
         industry=company["industry"],
-        scope1=scope1,
-        scope2=scope2,
-        scope3=scope3,
+        scope1=scope1_tco2e,
+        scope2=scope2_tco2e,
+        scope3=scope3_tco2e,
     )
 
     return {
         "company_id": company_id,
         "company_name": company["name"],
         "industry": company["industry"],
-        "scope1": scope1,
-        "scope2": scope2,
-        "scope3": scope3,
+        "scope1": scope1_tco2e,
+        "scope2": scope2_tco2e,
+        "scope3": scope3_tco2e,
         "action_plan": action_plan,
     }
-

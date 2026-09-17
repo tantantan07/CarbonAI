@@ -1,0 +1,83 @@
+.dashboard-page {
+  min-height: calc(100vh - 82px);
+  padding: 112px 24px 72px;
+  color: #203128;
+}
+.dashboard-shell { width: min(1180px, 100%); margin: 0 auto; }
+.dashboard-header { display:flex; justify-content:space-between; align-items:flex-end; gap:24px; margin-bottom:28px; }
+.dashboard-eyebrow { display:inline-block; margin-bottom:9px; color:#4e8066; font-size:10px; font-weight:800; letter-spacing:2.5px; }
+.dashboard-header h1 { margin:0; color:#173326; font-family:Georgia,"Times New Roman",serif; font-size:clamp(34px,4vw,52px); font-weight:400; letter-spacing:-1.8px; }
+.dashboard-header p { margin:9px 0 0; color:#6b7c72; font-size:14px; }
+.dashboard-button { border-radius:999px; padding:11px 18px; font-weight:750; font-size:13px; transition:transform .2s ease,box-shadow .2s ease,background .2s ease; }
+.dashboard-button:hover { transform:translateY(-1px); }
+.dashboard-button-primary { border:0; background:#a8ebc0; color:#10271b; box-shadow:0 10px 25px rgba(71,138,96,.16); }
+.dashboard-button-secondary { border:1px solid #d5e1da; background:rgba(255,255,255,.82); color:#27573e; }
+.dashboard-metrics { display:grid; grid-template-columns:1.35fr repeat(3,1fr); gap:14px; margin-bottom:18px; }
+.dashboard-metric { min-height:126px; padding:20px; border:1px solid rgba(42,83,62,.10); border-radius:17px; background:rgba(255,255,255,.82); box-shadow:0 12px 35px rgba(34,73,52,.07); }
+.dashboard-metric span,.dashboard-metric small { display:block; color:#718078; font-size:11px; font-weight:700; letter-spacing:.5px; text-transform:uppercase; }
+.dashboard-metric strong { display:block; margin-top:12px; color:#244b36; font-size:25px; line-height:1.1; }
+.dashboard-metric small { margin-top:8px; color:#91a097; font-size:10px; font-weight:600; text-transform:none; letter-spacing:0; }
+.dashboard-metric-featured { background:linear-gradient(135deg,#0b2116,#173b28); border-color:rgba(142,225,171,.18); }
+.dashboard-metric-featured span,.dashboard-metric-featured small { color:#9bb5a5; }
+.dashboard-metric-featured strong { color:#73e2a1; font-size:29px; }
+.dashboard-state { min-height:60vh; display:flex; flex-direction:column; justify-content:center; align-items:center; text-align:center; }
+.dashboard-state p { color:#6b7c72; }
+.dashboard-empty { max-width:620px; margin:0 auto; }
+.dashboard-empty h1 { margin:0; color:#173326; font-family:Georgia,"Times New Roman",serif; font-size:42px; font-weight:400; }
+.dashboard-empty p { max-width:500px; line-height:1.7; }
+.dashboard-spinner { width:28px; height:28px; margin-bottom:14px; border:3px solid #d9e7df; border-top-color:#2c7650; border-radius:50%; animation:dashboard-spin .8s linear infinite; }
+@keyframes dashboard-spin { to { transform:rotate(360deg); } }
+
+.carbon-simulator { margin:18px 0 24px; padding:28px; border:1px solid rgba(42,83,62,.10); border-radius:20px; background:rgba(255,255,255,.88); box-shadow:0 14px 40px rgba(34,73,52,.07); color:#24382d; }
+.carbon-simulator-header,.carbon-action-header { display:flex; align-items:flex-start; justify-content:space-between; gap:20px; }
+.carbon-simulator-header h2,.carbon-action-header h2 { margin:3px 0 7px; color:#193628; font-family:Georgia,"Times New Roman",serif; font-size:27px; font-weight:400; }
+.carbon-simulator-header p,.carbon-action-header p { margin:0; color:#718078; font-size:13px; line-height:1.6; }
+.carbon-simulator-eyebrow,.carbon-action-eyebrow { color:#4d7d63; font-size:9px; font-weight:800; letter-spacing:2.2px; }
+.carbon-simulator-export { border:1px solid #d3e1d8; border-radius:999px; background:#173c29; color:#eafff0; padding:10px 15px; font-size:12px; font-weight:750; }
+.carbon-simulator-grid { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1.05fr); gap:28px; margin-top:25px; }
+.carbon-simulator-section-title { display:flex; align-items:center; justify-content:space-between; gap:15px; margin-bottom:11px; }
+.carbon-simulator-section-title h3 { margin:0; color:#2d4637; font-size:14px; }
+.carbon-simulator-section-title span { color:#91a097; font-size:10px; }
+.carbon-simulator-controls { display:grid; gap:9px; }
+.carbon-simulator-control { padding:9px 13px; border:1px solid #e0e8e3; border-radius:12px; background:#f8faf9; }
+.carbon-slider { display:block; }
+.carbon-slider-label { display:flex; justify-content:space-between; gap:12px; color:#42564a; font-size:12px; font-weight:650; }
+.carbon-slider-label strong { color:#318258; }
+.carbon-slider input { display:block; width:100%; height:5px; margin-top:10px; accent-color:#32865a; }
+.carbon-simulator-impact { margin-top:13px; padding:17px; border-radius:14px; background:#edf9f1; border:1px solid #d5efde; }
+.carbon-simulator-impact>span { display:block; color:#4e7961; font-size:10px; font-weight:800; text-transform:uppercase; letter-spacing:1px; }
+.carbon-simulator-impact strong { display:block; margin-top:4px; color:#247047; font-size:25px; }
+.carbon-simulator-impact small { font-size:11px; font-weight:600; }
+.carbon-simulator-impact p { margin:4px 0 0; color:#64816f; font-size:10px; }
+.carbon-simulator-chart-panel { min-width:0; }
+.carbon-bar-chart { display:flex; min-height:245px; padding:17px 14px 10px 8px; border:1px solid #e1e9e4; border-radius:14px; background:#f8faf9; }
+.carbon-chart-y-labels { width:35px; display:flex; flex-direction:column; justify-content:space-between; padding:1px 0 28px; color:#94a098; font-size:9px; text-align:right; }
+.carbon-chart-plot { position:relative; flex:1; display:flex; align-items:stretch; justify-content:space-around; gap:15px; padding:0 12px 27px; background:repeating-linear-gradient(to bottom,transparent 0,transparent 48px,rgba(69,98,81,.08) 49px); border-bottom:1px solid #cfdcd4; }
+.carbon-chart-category { flex:1; min-width:55px; display:flex; flex-direction:column; align-items:center; justify-content:flex-end; }
+.carbon-chart-bars { width:100%; height:195px; display:flex; align-items:flex-end; justify-content:center; gap:7px; }
+.carbon-chart-bar { width:min(34px,34%); border-radius:7px 7px 2px 2px; transition:height .25s ease; }
+.carbon-chart-bar-baseline { background:#a7b1ab; }
+.carbon-chart-bar-simulated { background:#2e9a62; }
+.carbon-chart-category>span { margin-top:8px; color:#66796d; font-size:10px; font-weight:700; }
+.carbon-chart-legend { display:flex; justify-content:center; gap:18px; margin-top:12px; color:#6e7e75; font-size:10px; }
+.carbon-chart-legend span { display:inline-flex; align-items:center; gap:6px; }
+.carbon-chart-legend i { width:9px; height:9px; display:inline-block; border-radius:2px; }
+.carbon-legend-baseline { background:#a7b1ab; } .carbon-legend-simulated { background:#2e9a62; }
+
+.carbon-action-plan { margin:24px 0 45px; padding:28px; border:1px solid rgba(42,83,62,.10); border-radius:20px; background:rgba(255,255,255,.9); box-shadow:0 14px 40px rgba(34,73,52,.07); color:#24382d; }
+.carbon-action-status { flex:0 0 auto; padding:7px 11px; border:1px solid #d4e8da; border-radius:999px; background:#effaf2; color:#397151; font-size:10px; font-weight:800; }
+.carbon-scope-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin:20px 0; }
+.carbon-scope-grid>div { padding:13px 14px; border:1px solid #e1e9e4; border-radius:12px; background:#f8faf9; }
+.carbon-scope-grid span,.carbon-scope-grid strong { display:block; } .carbon-scope-grid span { color:#77877d; font-size:10px; text-transform:uppercase; letter-spacing:.6px; } .carbon-scope-grid strong { margin-top:5px; color:#2f6d4b; font-size:15px; }
+.carbon-action-list { display:grid; gap:10px; }
+.carbon-action-item { display:grid; grid-template-columns:32px 1fr; gap:13px; align-items:start; padding:15px; border:1px solid #e1e9e4; border-radius:12px; background:#fbfcfb; }
+.carbon-action-item>span { display:grid; width:29px; height:29px; place-items:center; border-radius:50%; background:#e9f6ee; color:#347652; font-size:9px; font-weight:850; }
+.carbon-action-item h3 { margin:1px 0 5px; color:#274634; font-size:13px; }
+.carbon-action-item p { margin:0; color:#687970; font-size:12px; line-height:1.65; }
+.carbon-fallback-note { margin-bottom:12px; padding:11px 13px; border-radius:10px; background:#fff9ed; border:1px solid #f0dfb9; color:#806a3e; font-size:11px; line-height:1.55; }
+.carbon-action-plan-loading p { margin-top:12px; color:#74847a; font-size:12px; }
+.carbon-action-loading-line { height:8px; width:100%; margin-top:18px; border-radius:99px; background:linear-gradient(90deg,#edf3ef 25%,#dce9e1 50%,#edf3ef 75%); background-size:200% 100%; animation:carbon-loading 1.2s infinite; }
+@keyframes carbon-loading { to { background-position:-200% 0; } }
+
+@media (max-width:900px) { .dashboard-metrics { grid-template-columns:repeat(2,minmax(0,1fr)); } .dashboard-metric-featured { grid-column:1 / -1; } .carbon-simulator-grid { grid-template-columns:1fr; } }
+@media (max-width:650px) { .dashboard-page { padding:105px 14px 50px; } .dashboard-header { align-items:stretch; flex-direction:column; } .dashboard-button { width:100%; } .dashboard-metrics { grid-template-columns:1fr; } .dashboard-metric-featured { grid-column:auto; } .carbon-simulator,.carbon-action-plan { padding:20px; } .carbon-simulator-header,.carbon-action-header { flex-direction:column; } .carbon-simulator-export { width:100%; } .carbon-scope-grid { grid-template-columns:1fr; } }

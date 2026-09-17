@@ -5,22 +5,37 @@ from google import genai
 
 load_dotenv()
 
+# Use stable, production-ready Gemini models. The fallback helps when a model
+# is temporarily at capacity; Google recommends retry/backoff for 503 errors.
+PRIMARY_MODEL = "gemini-2.5-flash"
+FALLBACK_MODEL = "gemini-2.5-flash-lite"
 
-GEMINI_MODEL = "gemini-3.8-flash"
-
-gemini_client = genai.Client(
-    api_key=os.getenv("GEMINI_API_KEY")
-)
+gemini_client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
 
 
 def generate_ai_response(prompt: str) -> str:
-    """Generate a text response from Gemini for a CarbonAI prompt."""
+    """Generate a text response, falling back if Gemini is temporarily unavailable."""
+    try:
+        response = gemini_client.models.generate_content(
+            model=PRIMARY_MODEL,
+            contents=prompt,
+        )
+        if response.text:
+            return response.text.strip()
+    except Exception as primary_error:
+        print(f"Primary Gemini model failed: {primary_error}")
+
     response = gemini_client.models.generate_content(
-        model=GEMINI_MODEL,
+        model=FALLBACK_MODEL,
         contents=prompt,
     )
 
+    if not response.text:
+        raise RuntimeError("Gemini returned an empty recommendation.")
+
     return response.text.strip()
+
+
 def build_action_plan_prompt(
     company_name: str,
     industry: str,
@@ -52,6 +67,8 @@ Provide:
 Keep the recommendations practical, measurable, and relevant to
 the company's industry and reported emissions.
 """
+
+
 def generate_action_plan(
     company_name: str,
     industry: str,
@@ -66,5 +83,4 @@ def generate_action_plan(
         scope2=scope2,
         scope3=scope3,
     )
-
     return generate_ai_response(prompt)
