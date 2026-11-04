@@ -1,0 +1,66 @@
+[
+  {
+    "instruction": "What is the difference between Scope 1, Scope 2 and Scope 3 emissions?",
+    "response": "Scope 1 is what you burn (fuel in vehicles, DG sets, boilers). Scope 2 is what you plug in (purchased electricity). Scope 3 is everything your business causes outside its walls, such as flights, hotels, commuting and waste."
+  },
+  {
+    "instruction": "What emission factor does CarbonAI use for Indian grid electricity?",
+    "response": "0.000727 tCO2e per kWh, from the CEA CO2 Baseline Database version 20 (FY2023-24), weighted average adjusted for renewable energy, 0.727 tCO2 per MWh."
+  },
+  {
+    "instruction": "A factory uses 850,000 kWh of electricity a year. What are its Scope 2 emissions?",
+    "response": "850,000 × 0.000727 = 617.95 tCO2e per year."
+  },
+  {
+    "instruction": "How many tCO2e do 18,000 litres of diesel emit?",
+    "response": "18,000 × 0.00268 = 48.24 tCO2e."
+  },
+  {
+    "instruction": "How does CarbonAI express uncertainty?",
+    "response": "It runs a Monte Carlo simulation sampling each emission factor within its uncertainty and reports a P10 to P90 range, the band the true footprint is 80% likely to fall in."
+  },
+  {
+    "instruction": "What target pathway does CarbonAI use by default?",
+    "response": "A 1.5°C-aligned pathway with a 4.2% absolute reduction per year: target = base-year emissions × (1 − 0.042)^n."
+  },
+  {
+    "instruction": "Does electrifying a gas boiler with a heat pump always reduce emissions in India?",
+    "response": "No. With a COP around 3, on today's coal-heavy Indian grid it can increase emissions unless paired with rooftop solar or a green PPA. CarbonAI flags this."
+  },
+  {
+    "instruction": "Who can use green open access in India?",
+    "response": "Under the Green Energy Open Access Rules 2022, consumers with a connected load of 100 kW or more can buy renewable power through open access."
+  },
+  {
+    "instruction": "What is a marginal abatement cost?",
+    "response": "MAC = (capex × capital recovery factor − annual saving) ÷ tonnes avoided. A negative MAC means the switch saves money for every tonne avoided."
+  },
+  {
+    "instruction": "What is the typical payback of rooftop solar in west India?",
+    "response": "About 4 to 5 years, with roughly 1,400 kWh per kW per year, ₹45,000 per kW capex and an ₹8 per kWh grid tariff."
+  },
+  {
+    "instruction": "Which agent should answer a question about business flights?",
+    "response": "Atlas, the Scope 3 specialist for travel, hotels, commuting, waste and suppliers."
+  },
+  {
+    "instruction": "What structure must every CarbonAI agent answer follow?",
+    "response": "Three parts: Answer (the recommendation), Why (the numbers, factors and assumptions behind it) and Next step (one concrete action with an owner and timeframe)."
+  },
+  {
+    "instruction": "How should Terra explain a carbon footprint to a beginner?",
+    "response": "Like a monthly electricity bill for the planet: the biggest line item is the one to fix first. Short sentences, everyday Indian analogies, no jargon."
+  },
+  {
+    "instruction": "What is BRSR Core?",
+    "response": "A SEBI set of key ESG indicators, including Scope 1 and Scope 2 emissions and intensity, with assurance phased in for the largest listed companies from FY2023-24."
+  },
+  {
+    "instruction": "How is CarbonAI's readiness score calculated?",
+    "response": "35% data completeness, 20% Scope 3 coverage, 25% peer position and 20% renewable electricity share, on a 0 to 100 scale."
+  },
+  {
+    "instruction": "How many trees absorb 1 tCO2e in a year?",
+    "response": "About 45 mature trees, at roughly 22 kg CO2 per tree per year."
+  }
+]

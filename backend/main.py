@@ -4,6 +4,8 @@ from pydantic import BaseModel
 from supabase import create_client, Client
 from dotenv import load_dotenv
 from ai_service import generate_action_plan
+from emission_engine import resolve_factors, calculate as engine_calculate
+import routes_v2
 
 load_dotenv()
 
@@ -11,18 +13,42 @@ SUPABASE_URL = os.environ.get("SUPABASE_URL")
 SUPABASE_KEY = os.environ.get("SUPABASE_KEY")
 SUPABASE_SERVICE_KEY = os.environ.get("SUPABASE_SERVICE_KEY")
 
-supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
-supabase_admin: Client = create_client(SUPABASE_URL, SUPABASE_SERVICE_KEY)
-app = FastAPI(title="CarbonAI Backend")
+# Supabase is optional: v2 analytics/agents/reports work without it (guest mode, local dev).
+supabase: Client | None = create_client(SUPABASE_URL, SUPABASE_KEY) if SUPABASE_URL and SUPABASE_KEY else None
+supabase_admin: Client | None = (
+    create_client(SUPABASE_URL, SUPABASE_SERVICE_KEY) if SUPABASE_URL and SUPABASE_SERVICE_KEY else None
+)
+app = FastAPI(title="CarbonAI Backend", version="2.0.0")
+
+
+def load_factor_rows(industry: str | None):
+    if not supabase:
+        return resolve_factors(None)
+    rows = supabase.table("emission_factors").select("*").eq("industry", industry or "general").execute().data
+    if not rows:
+        rows = supabase.table("emission_factors").select("*").eq("industry", "general").execute().data
+    return resolve_factors(rows)
+
+
+routes_v2.set_factor_loader(load_factor_rows)
+app.include_router(routes_v2.router)
 
 from fastapi.middleware.cors import CORSMiddleware
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["https://carbon-ai-ten.vercel.app", "http://localhost:5173"],
+    allow_origins=[
+        o.strip()
+        for o in os.environ.get(
+            "CORS_ORIGINS",
+            "https://carbon-ai-ten.vercel.app,http://localhost:5173,http://localhost:4173",
+        ).split(",")
+    ],
+    allow_origin_regex=r"https://carbon-ai.*\.vercel\.app",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["Content-Disposition"],
 )
 
 @app.get("/")
@@ -31,7 +57,8 @@ def read_root():
 
 @app.get("/health")
 def health_check():
-    return {"status": "ok"}
+    import llm_provider
+    return {"status": "ok", "supabase": bool(supabase), "llm": llm_provider.status()}
 
 @app.get("/emission-factors")
 def get_emission_factors():
@@ -340,24 +367,12 @@ def get_action_plan(current_user=Depends(get_current_user)):
 
     entries = entries_response.data
 
-    # Convert emission categories into Scope 1, 2 and 3
-    scope1_categories = {"natural_gas", "petrol", "diesel"}
-    scope2_categories = {"electricity"}
-
-    scope1 = 0
-    scope2 = 0
-    scope3 = 0
-
-    for entry in entries:
-        category = entry["category"]
-        value = float(entry["value"])
-
-        if category in scope1_categories:
-            scope1 += value
-        elif category in scope2_categories:
-            scope2 += value
-        else:
-            scope3 += value
+    # Convert activity entries into tCO2e per scope (previously raw units were summed)
+    activity = {e["category"]: float(e["value"]) for e in entries}
+    calc = engine_calculate(activity, load_factor_rows(company.get("industry")))
+    scope1 = calc["scope_totals"]["scope1"]
+    scope2 = calc["scope_totals"]["scope2"]
+    scope3 = calc["scope_totals"]["scope3"]
 
     # Generate the AI action plan
     action_plan = generate_action_plan(

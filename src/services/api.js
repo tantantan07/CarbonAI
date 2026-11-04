@@ -1,178 +1,115 @@
 import axios from 'axios';
 
-const API_BASE_URL = 'https://carbonai-backend.onrender.com';
+export const API_BASE_URL =
+  import.meta.env.VITE_API_URL || 'https://carbonai-backend.onrender.com';
 
-export const api = axios.create({
-  baseURL: API_BASE_URL,
-  headers: {
-    'Content-Type': 'application/json',
-  },
+export const api = axios.create({ baseURL: API_BASE_URL, timeout: 90000 });
+
+api.interceptors.request.use((config) => {
+  const token = localStorage.getItem('access_token');
+  if (token) config.headers.Authorization = `Bearer ${token}`;
+  return config;
 });
 
-// Automatically attach Supabase access token
-api.interceptors.request.use(
-  (config) => {
-    const accessToken = localStorage.getItem('access_token');
+const errMsg = (e) =>
+  e?.response?.data?.detail?.toString?.() || e?.message || 'Request failed';
 
-    if (accessToken) {
-      config.headers.Authorization = `Bearer ${accessToken}`;
-    }
-
-    return config;
-  },
-  (error) => {
-    return Promise.reject(error);
-  }
-);
-
-// --------------------------------------------------
-// AUTH - SIGN IN
-// --------------------------------------------------
-
-export const signIn = async (email, password) => {
+// ---------------- auth (Round 1, Supabase via backend) ----------------
+export async function signIn(email, password) {
   try {
-    const response = await api.post('/auth/signin', {
-      email,
-      password,
-    });
-
-    const data = response.data;
-
-    // YOUR BACKEND RETURNS:
-    // {
-    //   user: {...},
-    //   session: {
-    //     access_token: "..."
-    //   }
-    // }
-
-    const accessToken = data?.session?.access_token;
-
-    if (!accessToken) {
-      throw new Error(
-        'Login succeeded but no access token was returned by the backend.'
-      );
-    }
-
-    // Save access token
-    localStorage.setItem('access_token', accessToken);
-
-    // Save user information
-    if (data?.user) {
-      localStorage.setItem('user', JSON.stringify(data.user));
-    }
-
+    const { data } = await api.post('/auth/signin', { email, password });
+    const token = data?.session?.access_token;
+    if (!token) throw new Error('No access token returned.');
+    localStorage.setItem('access_token', token);
+    if (data?.user) localStorage.setItem('user', JSON.stringify(data.user));
     return data;
-  } catch (error) {
-    console.error('Sign in failed:', error);
-
-    const message =
-      error?.response?.data?.detail ||
-      error?.response?.data?.message ||
-      error?.message ||
-      'Invalid email or password. Please try again.';
-
-    throw new Error(message);
+  } catch (e) {
+    throw new Error(errMsg(e), { cause: e });
   }
-};
-
-// --------------------------------------------------
-// AUTH - SIGN OUT
-// --------------------------------------------------
-
+}
 export const signOut = () => {
   localStorage.removeItem('access_token');
   localStorage.removeItem('user');
 };
+export const isAuthenticated = () => Boolean(localStorage.getItem('access_token'));
 
-// --------------------------------------------------
-// AUTH - CHECK LOGIN
-// --------------------------------------------------
+// Saves to Supabase (flat payload the backend expects)
+export async function saveAssessment(profile, inputs) {
+  const { data } = await api.post('/assessment', {
+    company_name: profile.name || 'My company',
+    industry: profile.industry || 'general',
+    employee_count: Number(profile.employees) || null,
+    location: profile.location || null,
+    ...inputs,
+  });
+  return data;
+}
 
-export const isAuthenticated = () => {
-  return Boolean(localStorage.getItem('access_token'));
-};
+// ---------------- v2 ----------------
+const engineHeaders = (engine) =>
+  engine && engine !== 'nugen' && engine !== 'browser-lmstudio'
+    ? { 'X-LLM-Provider': engine }
+    : {};
 
-// --------------------------------------------------
-// ASSESSMENT
-// --------------------------------------------------
+export const llmStatus = () => api.get('/v2/llm/status').then((r) => r.data);
+export const listAgents = () => api.get('/v2/agents').then((r) => r.data);
+export const listClimateTech = () => api.get('/v2/climate-tech').then((r) => r.data);
+export const analyze = (profile, inputs) =>
+  api.post('/v2/analyze', { profile, inputs }).then((r) => r.data);
+export const simulateSwitches = (profile, inputs, switches) =>
+  api.post('/v2/climate-tech/simulate', { profile, inputs, switches }).then((r) => r.data);
+export const runScenarios = (profile, inputs, scenarios) =>
+  api.post('/v2/scenarios', { profile, inputs, scenarios }).then((r) => r.data);
+export const getInsights = (profile, inputs, engine) =>
+  api.post('/v2/insights', { profile, inputs }, { headers: engineHeaders(engine) }).then((r) => r.data);
 
-export const submitAssessment = async (assessmentData) => {
-  try {
-    const response = await api.post('/assessment', assessmentData);
-    return response.data;
-  } catch (error) {
-    console.error('Error submitting assessment:', error);
-    throw error;
-  }
-};
-
-// --------------------------------------------------
-// DASHBOARD
-// --------------------------------------------------
-
-export const getDashboardResults = async () => {
-  try {
-    const response = await api.get('/results');
-    return response.data;
-  } catch (error) {
-    console.error('Error fetching dashboard results:', error);
-    throw error;
-  }
-};
-
-// --------------------------------------------------
-// WHAT-IF SIMULATOR
-// --------------------------------------------------
-
-export const runWhatIfSimulation = async (scenarioData) => {
-  try {
-    const response = await api.post('/what-if', scenarioData);
-    return response.data;
-  } catch (error) {
-    console.error('Error running What-If simulation:', error);
-    throw error;
-  }
-};
-
-// --------------------------------------------------
-// AI ACTION PLAN
-// --------------------------------------------------
-
-export const getActionPlan = async () => {
-  try {
-    const accessToken = localStorage.getItem('access_token');
-
-    if (!accessToken) {
-      throw new Error('No access token found. Please log in again.');
-    }
-
-    const response = await api.get('/action-plan', {
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-      },
+export async function agentChat(agentId, profile, inputs, messages, engine, localCfg) {
+  if (engine === 'browser-lmstudio') {
+    // Prompt is personalised on the server, inference runs on this computer.
+    const { data } = await api.post(`/v2/agents/${agentId}/prompt`, { profile, inputs, messages });
+    const base = (localCfg?.url || 'http://localhost:1234/v1').replace(/\/$/, '');
+    const started = performance.now();
+    const res = await fetch(`${base}/chat/completions`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ model: localCfg?.model || 'local-model', messages: data.messages, temperature: 0.3, max_tokens: 900 }),
     });
-
-    return response.data;
-  } catch (error) {
-    console.error('Error fetching action plan:', error);
-    throw error;
+    if (!res.ok) throw new Error(`LM Studio returned ${res.status}. Is the local server running with CORS enabled?`);
+    const out = await res.json();
+    let text = out?.choices?.[0]?.message?.content || '';
+    if (text.includes('</think>')) text = text.split('</think>')[1];
+    return {
+      reply: text.trim(),
+      meta: { provider: 'lmstudio (this computer)', model: out.model, latency_ms: Math.round(performance.now() - started) },
+    };
   }
-};
+  const { data } = await api.post(`/v2/agents/${agentId}/chat`, { profile, inputs, messages }, { headers: engineHeaders(engine) });
+  return data;
+}
 
-// --------------------------------------------------
-// DEFAULT EXPORT
-// --------------------------------------------------
+export async function uploadDocuments(files, engine) {
+  const fd = new FormData();
+  [...files].forEach((f) => fd.append('files', f));
+  const { data } = await api.post('/v2/documents/upload', fd, { headers: engineHeaders(engine) });
+  return data;
+}
 
-const apiExport = {
-  api,
-  signIn,
-  signOut,
-  isAuthenticated,
-  submitAssessment,
-  getDashboardResults,
-  runWhatIfSimulation,
-  getActionPlan,
-};
+export async function downloadReport(fmt, body, engine) {
+  const res = await api.post(`/v2/reports/${fmt}`, body, { responseType: 'blob', headers: engineHeaders(engine) });
+  const name = (res.headers['content-disposition'] || '').match(/filename="(.+)"/)?.[1] || `carbonai-report.${fmt}`;
+  saveBlob(res.data, name);
+}
 
-export default apiExport;
+export async function downloadTemplate() {
+  const res = await api.get('/v2/documents/template', { responseType: 'blob' });
+  saveBlob(res.data, 'carbonai-data-template.xlsx');
+}
+
+function saveBlob(blob, name) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = name;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 2000);
+}
