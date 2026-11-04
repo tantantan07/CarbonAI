@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { animate, motion, useMotionValue, useReducedMotion, useSpring, useTransform } from 'motion/react';
+import { animate, motion, useMotionTemplate, useMotionValue, useReducedMotion, useSpring, useTransform } from 'motion/react';
 
 /** Number that counts up to `value` whenever it changes. */
 export function CountUp({ value, decimals = 0, prefix = '', suffix = '', duration = 1.1 }) {
@@ -82,7 +82,7 @@ export function ParticleField() {
     const resize = () => {
       w = canvas.clientWidth; h = canvas.clientHeight;
       canvas.width = w * dpr; canvas.height = h * dpr; ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      const n = Math.round(Math.min(110, (w * h) / 14000));
+      const n = Math.round(Math.min(60, (w * h) / 22000));
       parts = Array.from({ length: n }, () => ({
         x: Math.random() * w, y: Math.random() * h, r: 1 + Math.random() * 2.4,
         vy: 0.15 + Math.random() * 0.45, vx: (Math.random() - 0.5) * 0.15, c: colors[Math.floor(Math.random() * colors.length)],
@@ -141,5 +141,129 @@ export function RevealWords({ text, className, delay = 0 }) {
         </span>
       ))}
     </span>
+  );
+}
+
+/* ---- Aceternity / Skiper-style additions ---- */
+
+/* Cursor spotlight that follows the mouse inside its parent */
+export function Spotlight({ color = 'rgba(123,211,137,.18)', size = 520, className = '' }) {
+  const ref = useRef(null);
+  const x = useMotionValue(-1000);
+  const y = useMotionValue(-1000);
+  const sx = useSpring(x, { stiffness: 120, damping: 20 });
+  const sy = useSpring(y, { stiffness: 120, damping: 20 });
+  useEffect(() => {
+    const el = ref.current?.parentElement;
+    if (!el) return undefined;
+    const move = (e) => { const r = el.getBoundingClientRect(); x.set(e.clientX - r.left); y.set(e.clientY - r.top); };
+    el.addEventListener('pointermove', move);
+    return () => el.removeEventListener('pointermove', move);
+  }, [x, y]);
+  const bg = useMotionTemplate`radial-gradient(${size}px circle at ${sx}px ${sy}px, ${color}, transparent 70%)`;
+  return <motion.div ref={ref} aria-hidden className={`fx-spot ${className}`} style={{ background: bg }} />;
+}
+
+/* 3D tilt card with a glare that follows the pointer */
+export function TiltCard({ children, className = '', max = 10, style }) {
+  const reduce = useReducedMotion();
+  const rx = useMotionValue(0);
+  const ry = useMotionValue(0);
+  const gx = useMotionValue(50);
+  const gy = useMotionValue(50);
+  const srx = useSpring(rx, { stiffness: 160, damping: 18 });
+  const sry = useSpring(ry, { stiffness: 160, damping: 18 });
+  const glare = useMotionTemplate`radial-gradient(420px circle at ${gx}% ${gy}%, rgba(255,255,255,.16), transparent 60%)`;
+  const onMove = (e) => {
+    if (reduce) return;
+    const r = e.currentTarget.getBoundingClientRect();
+    const px = (e.clientX - r.left) / r.width;
+    const py = (e.clientY - r.top) / r.height;
+    ry.set((px - 0.5) * max * 2);
+    rx.set(-(py - 0.5) * max * 2);
+    gx.set(px * 100); gy.set(py * 100);
+  };
+  const reset = () => { rx.set(0); ry.set(0); };
+  return (
+    <motion.div className={`fx-tilt ${className}`} onPointerMove={onMove} onPointerLeave={reset}
+      style={{ rotateX: srx, rotateY: sry, transformPerspective: 900, ...style }}>
+      {children}
+      <motion.div aria-hidden className="fx-glare" style={{ background: glare }} />
+    </motion.div>
+  );
+}
+
+/* Headline whose words rise in one by one (text-generate effect) */
+export function TextReveal({ text, className = '', delay = 0, as: Tag = 'h1' }) {
+  const words = text.split(' ');
+  const reduce = useReducedMotion();
+  return (
+    <Tag className={className} aria-label={text}>
+      {words.map((w, i) => (
+        <span className="fx-word-mask" key={i} aria-hidden>
+          <motion.span className="fx-word" initial={reduce ? false : { y: '110%', opacity: 0, filter: 'blur(8px)' }}
+            animate={{ y: '0%', opacity: 1, filter: 'blur(0px)' }}
+            transition={{ duration: 0.7, delay: delay + i * 0.07, ease: [0.2, 0.7, 0.1, 1] }}>
+            {w}
+          </motion.span>{' '}
+        </span>
+      ))}
+    </Tag>
+  );
+}
+
+/* Lightweight floating particles (sparkles) on a canvas; pauses when off-screen */
+export function Sparkles({ count = 70, color = '123,211,137', className = '' }) {
+  const ref = useRef(null);
+  const reduce = useReducedMotion();
+  useEffect(() => {
+    const c = ref.current;
+    if (!c || reduce) return undefined;
+    const ctx = c.getContext('2d');
+    let w = 0; let h = 0; let raf; let visible = true;
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const resize = () => { w = c.offsetWidth; h = c.offsetHeight; c.width = w * dpr; c.height = h * dpr; ctx.setTransform(dpr, 0, 0, dpr, 0, 0); };
+    resize();
+    const pts = Array.from({ length: count }, () => ({ x: Math.random() * w, y: Math.random() * h, r: Math.random() * 1.6 + 0.3, v: Math.random() * 0.25 + 0.05, p: Math.random() * Math.PI * 2 }));
+    const tick = () => {
+      if (visible) {
+        ctx.clearRect(0, 0, w, h);
+        for (const s of pts) {
+          s.y -= s.v; s.p += 0.03;
+          if (s.y < -4) { s.y = h + 4; s.x = Math.random() * w; }
+          ctx.globalAlpha = 0.35 + Math.sin(s.p) * 0.35;
+          ctx.fillStyle = `rgb(${color})`;
+          ctx.beginPath(); ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2); ctx.fill();
+        }
+      }
+      raf = requestAnimationFrame(tick);
+    };
+    tick();
+    const io = new IntersectionObserver(([e]) => { visible = e.isIntersecting; });
+    io.observe(c);
+    window.addEventListener('resize', resize);
+    return () => { cancelAnimationFrame(raf); io.disconnect(); window.removeEventListener('resize', resize); };
+  }, [count, color, reduce]);
+  return <canvas ref={ref} aria-hidden className={`fx-sparkles ${className}`} />;
+}
+
+/* Infinite marquee row */
+export function Marquee({ items, reverse = false, speed = 38 }) {
+  const row = [...items, ...items];
+  return (
+    <div className="fx-marquee" style={{ '--dur': `${speed}s` }}>
+      <div className={`fx-marquee-track ${reverse ? 'rev' : ''}`}>
+        {row.map((it, i) => <div className="fx-marquee-item" key={i} aria-hidden={i >= items.length}>{it}</div>)}
+      </div>
+    </div>
+  );
+}
+
+/* Button/link with an animated light beam travelling around its border */
+export function BeamButton({ as: Tag = 'button', className = '', children, ...props }) {
+  return (
+    <Tag className={`fx-beam ${className}`} {...props}>
+      <span className="fx-beam-inner">{children}</span>
+    </Tag>
   );
 }

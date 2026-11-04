@@ -48,6 +48,13 @@ export default function AppShell() {
   const [llm, setLlm] = useState(null);
   const [authed, setAuthed] = useState(isAuthenticated());
   const [showSignIn, setShowSignIn] = useState(false);
+  const glow = (e) => {
+    const el = e.target.closest?.('.panel');
+    if (!el) return;
+    const r = el.getBoundingClientRect();
+    el.style.setProperty('--mx', `${e.clientX - r.left}px`);
+    el.style.setProperty('--my', `${e.clientY - r.top}px`);
+  };
 
   useEffect(() => { llmStatus().then(setLlm).catch(() => setLlm(null)); }, []);
   const engineLabel = settings.engine === 'nugen'
@@ -61,7 +68,7 @@ export default function AppShell() {
         <Link to="/" className="brand"><span className="brand-mark" />CarbonAI</Link>
         {LINKS.map((l, i) => l.group
           ? <div className="group" key={i}>{l.group}</div>
-          : <NavLink key={l.to} to={l.to} className={({ isActive }) => `nav ${isActive ? 'active' : ''}`}><l.icon size={17} />{l.label}</NavLink>)}
+          : <NavLink key={l.to} to={l.to} className={({ isActive }) => `nav ${isActive ? 'active' : ''}`}>{({ isActive }) => <>{isActive && <motion.span layoutId="navpill" className="nav-pill" transition={{ type: 'spring', stiffness: 420, damping: 34 }} />}<l.icon size={17} />{l.label}</>}</NavLink>)}
         <div className="foot">
           <label htmlFor="engine">AI engine</label>
           <select id="engine" className="select" style={{ color: 'var(--ink)' }} value={settings.engine} onChange={(e) => setSettings({ ...settings, engine: e.target.value })}>
@@ -85,7 +92,7 @@ export default function AppShell() {
             : <button type="button" className="btn btn-sm btn-ghost" style={{ color: 'var(--paper-2)' }} onClick={() => setShowSignIn(true)}>Sign in</button>}
         </div>
       </aside>
-      <main className="main">
+      <main className="main" onPointerMove={glow}>
         <div className="topbar">
           <div className="company-chip">
             <span className="cc-mark">{(profile.name || 'C')[0].toUpperCase()}</span>

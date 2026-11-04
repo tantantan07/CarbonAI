@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { motion, useMotionValueEvent, useReducedMotion, useScroll, useSpring, useTransform } from 'motion/react';
 import Lenis from 'lenis';
 import { useStore } from '../state/store';
-import { CountUp, ParticleField, RevealWords, Tilt } from '../components/Fx';
+import { BeamButton, CountUp, Marquee, ParticleField, Spotlight, TextReveal, TiltCard } from '../components/Fx';
 
 // Sample company used for the scroll story (same numbers the engine produces for the demo).
 const STORY = [
@@ -23,6 +23,63 @@ const AGENTS = [
   { k: 'L', name: 'Lex', role: 'For auditors and investors', color: '#E6E6E6', q: '836 t, with an 80% range of 792–879 t. Here is every factor and its source.' },
   { k: 'D', name: 'Archivist', role: 'Reads your documents', color: '#B8E0C8', q: 'Sorted 14 files: 12 electricity bills, a fuel log, a waste manifest. Commuting data is still missing.' },
 ];
+
+const FRAMEWORKS = [
+  ['GHG Protocol', 'Corporate Standard'], ['CEA v20', 'Indian grid factor'], ['BRSR Core', 'SEBI disclosures'], ['CCTS', "India's carbon market"],
+  ['IPCC 2006', 'Combustion factors'], ['SBTi', '1.5 °C pathway'],
+];
+const FRAMEWORKS2 = [
+  ['EU CBAM', 'Export reporting'], ['Green Open Access', '2022 Rules'], ['PAT', 'BEE scheme'], ['DEFRA', 'Travel factors'],
+  ['SWM Rules', 'Waste 2016'], ['Nugen', 'Aligned inference'],
+];
+
+function trackGlow(e) {
+  const r = e.currentTarget.getBoundingClientRect();
+  e.currentTarget.style.setProperty('--mx', `${e.clientX - r.left}px`);
+  e.currentTarget.style.setProperty('--my', `${e.clientY - r.top}px`);
+}
+
+function Bento() {
+  const cards = [
+    { cls: 'b-a', title: 'Scenario planner', body: 'Build up to six futures. Pick the scope each one may change and the time resolution, and see the 2030 gap and payback for each.', visual: <BentoChart /> },
+    { cls: 'b-b', title: 'Switch your climate tech', body: 'Flip technologies on and see tonnes, ₹ and payback change instantly.', visual: (
+      <div className="toggle-list">{[['LED + smart HVAC', true], ['Rooftop solar', true], ['Green open-access PPA', true], ['EV fleet', false], ['Heat pumps', false]].map(([t, on]) => (
+        <div className="toggle" key={t}><span>{t}</span><span className={`switch ${on ? 'on' : ''}`} /></div>))}</div>) },
+    { cls: 'b-c', title: 'Reads your documents', body: 'Bills, fuel logs and manifests, sorted and extracted with evidence.', visual: (
+      <div className="doc-stack"><div className="doc"><span>msedcl-apr.pdf</span><span>8,50,000 kWh</span></div><div className="doc"><span>fuel-log.csv</span><span>18,000 L</span></div></div>) },
+    { cls: 'b-d', title: 'Two dashboards', body: 'Decisions and rupees for the CEO. Method, sources and uncertainty for auditors and investors.' },
+    { cls: 'b-e', title: 'Reports in one click', body: 'Board brief or disclosure statement, as PDF, Excel or JSON, with an AI-written summary.' },
+  ];
+  return (
+    <section className="bento-sec">
+      <h2 className="section-title">Everything a sustainability team does, in one place</h2>
+      <p className="section-lede">Built for people who have never done carbon accounting, and checked well enough for the people who have.</p>
+      <div className="bento">
+        {cards.map((c, i) => (
+          <motion.div key={c.title} className={`glow-card ${c.cls}`} onPointerMove={trackGlow}
+            initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.3 }} transition={{ duration: 0.6, delay: i * 0.06 }}>
+            <h3>{c.title}</h3><p>{c.body}</p>
+            {c.visual && <div className="bento-visual">{c.visual}</div>}
+          </motion.div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function BentoChart() {
+  const pts = (arr) => arr.map((v, i) => `${i * 120},${160 - v}`).join(' ');
+  return (
+    <svg viewBox="0 0 600 170" width="100%" height="190" role="img" aria-label="Three scenario lines falling below the business-as-usual line">
+      <defs><linearGradient id="bg1" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stopColor="#7BD389" stopOpacity=".35" /><stop offset="1" stopColor="#7BD389" stopOpacity="0" /></linearGradient></defs>
+      <polyline points={pts([90, 100, 110, 120, 130, 140])} fill="none" stroke="rgba(233,239,232,.5)" strokeWidth="2" strokeDasharray="5 6" />
+      <motion.polygon points={`0,170 ${pts([90, 72, 55, 40, 30, 24])} 600,170`} fill="url(#bg1)" initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true }} transition={{ duration: 1.2 }} />
+      {[[[90, 80, 70, 64, 60, 58], '#6FB7D9'], [[90, 84, 76, 70, 66, 62], '#F08A4B'], [[90, 72, 55, 40, 30, 24], '#7BD389']].map(([d, c], i) => (
+        <motion.polyline key={c} points={pts(d)} fill="none" stroke={c} strokeWidth="3" strokeLinecap="round" initial={{ pathLength: 0 }} whileInView={{ pathLength: 1 }} viewport={{ once: true }} transition={{ duration: 1.4, delay: 0.2 + i * 0.2 }} />
+      ))}
+    </svg>
+  );
+}
 
 function useLenis(enabled) {
   useEffect(() => {
@@ -48,19 +105,18 @@ function Story() {
   const ref = useRef(null);
   const { scrollYProgress } = useScroll({ target: ref, offset: ['start start', 'end end'] });
   const [step, setStep] = useState(-1);
-  const [shown, setShown] = useState(0);
+  const stepRef = useRef(-1);
+  const total = useTransform(scrollYProgress, (p) => {
+    let sum = 0;
+    STORY.forEach((it) => { const [a, b] = it.at; sum += it.t * Math.min(Math.max((p - a) / (b - a), 0), 1); });
+    return Math.round(sum).toLocaleString('en-IN');
+  });
 
   useMotionValueEvent(scrollYProgress, 'change', (p) => {
     let s = -1;
-    let sum = 0;
-    STORY.forEach((it, i) => {
-      const [a, b] = it.at;
-      if (p >= a) s = i;
-      sum += it.t * Math.min(Math.max((p - a) / (b - a), 0), 1);
-    });
+    STORY.forEach((it, i) => { if (p >= it.at[0]) s = i; });
     if (p >= 0.8) s = 3;
-    setStep(s);
-    setShown(sum);
+    if (s !== stepRef.current) { stepRef.current = s; setStep(s); }
   });
 
   return (
@@ -80,7 +136,7 @@ function Story() {
         </div>
 
         <div className="column-wrap">
-          <div className="column-total" aria-live="polite">{Math.round(shown).toLocaleString('en-IN')} <small>tCO₂e a year</small></div>
+          <div className="column-total" aria-live="polite"><motion.span>{total}</motion.span> <small>tCO₂e a year</small></div>
           <div className="column">
             {STORY.map((it) => <Stratum key={it.scope} progress={scrollYProgress} item={it} />)}
           </div>
@@ -119,12 +175,12 @@ function AgentsTrack() {
         </header>
         <motion.div className="agents-track" ref={track} style={{ x }}>
           {AGENTS.map((a) => (
-            <article className="agent-tile" key={a.name} style={{ '--agent': a.color }}>
-              <div className="agent-face" style={{ background: a.color }}>{a.k}</div>
+            <TiltCard className="agent-tile" key={a.name} max={7} style={{ '--agent': a.color }}>
+              <div className="agent-face" style={{ background: a.color, color: a.color }}><span style={{ color: "var(--ink)" }}>{a.k}</span></div>
               <h3>{a.name}</h3>
               <div className="role">{a.role}</div>
               <blockquote style={{ borderColor: a.color }}>{a.q}</blockquote>
-            </article>
+            </TiltCard>
           ))}
         </motion.div>
       </div>
@@ -186,50 +242,65 @@ export default function Landing() {
         </nav>
       </header>
 
-      <section className="hero">
+      <section className="hero2">
+        <div className="aurora" aria-hidden><i /><i /><i /></div>
+        <div className="grid-bg" aria-hidden />
         <ParticleField />
-        <div className="hero-aura" aria-hidden="true" />
-        <div className="hero-copy">
-          <h1><RevealWords text="Your bills already know your carbon." /></h1>
-          <motion.p className="hero-sub" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.7, duration: 0.8 }}>
+        <Spotlight />
+        <div>
+          <motion.span className="badge-pill" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
+            <b>New</b> Agents now run on our Nugen-aligned carbon model
+          </motion.span>
+          <TextReveal text="Your bills already know your carbon." delay={0.15} />
+          <motion.p className="hero-sub" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.7, delay: 0.7 }}>
             Upload electricity bills and fuel logs. CarbonAI turns them into Scope 1, 2 and 3 emissions, explains every number, and plans cuts that pay for themselves.
           </motion.p>
-          <motion.div className="hero-cta" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.9, duration: 0.8 }}>
-            <Link to="/app/assess" className="btn btn-solid btn-lg">Measure my footprint</Link>
-            <button type="button" className="btn btn-ghost btn-lg" onClick={() => { loadSample(); nav('/app/ceo'); }}>Open the demo company</button>
+          <motion.div className="hero-cta" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.7, delay: 0.85 }}>
+            <Link to="/app/assess" className="btn btn-solid">Measure my footprint</Link>
+            <BeamButton type="button" onClick={() => { loadSample(); nav('/app/ceo'); }}>Open the demo company</BeamButton>
           </motion.div>
-          <div className="hero-facts">
-            <div><b>0.727 kg</b><span>CO₂ per unit of Indian grid power (CEA FY24)</span></div>
-            <div><b>7 agents</b><span>on a Nugen-aligned carbon model</span></div>
-            <div><b>PDF + Excel</b><span>reports for the CEO and auditors</span></div>
-          </div>
+          <motion.div className="trust-row" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1.1, duration: 0.8 }}>
+            <div><b>7</b>specialist AI agents</div>
+            <div><b>10</b>climate-tech switches</div>
+            <div><b>0.727</b>kg CO₂ per grid kWh (CEA)</div>
+          </motion.div>
         </div>
 
-        <motion.div className="hero-card-wrap" initial={{ opacity: 0, y: 40 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4, duration: 1, ease: [0.16, 1, 0.3, 1] }}>
-          <Tilt className="glass hero-card">
-            <div className="hc-top"><span>Shakti Textiles, FY 2025-26</span><span className="live"><i />Nugen model</span></div>
-            <div className="hc-total"><CountUp value={836} /><small>tCO₂e a year</small></div>
-            <div className="hc-bar">
-              {[[147, 'var(--s1)'], [618, 'var(--s2)'], [71, 'var(--s3)']].map(([v, c], i) => (
-                <motion.span key={i} style={{ background: c }} initial={{ width: 0 }} animate={{ width: `${(v / 836) * 100}%` }} transition={{ delay: 0.9 + i * 0.15, duration: 0.9, ease: [0.16, 1, 0.3, 1] }} />
+        <motion.div initial={{ opacity: 0, y: 40, rotateX: 18 }} animate={{ opacity: 1, y: 0, rotateX: 0 }} transition={{ duration: 1.1, delay: 0.3, ease: [0.16, 1, 0.3, 1] }} style={{ perspective: 1200 }}>
+          <TiltCard className="glow-card preview" max={8}>
+            <span className="float-chip a">−556 t with a green PPA</span>
+            <span className="float-chip b">₹11.5 L saved a year</span>
+            <div className="preview-top"><span>Shakti Textiles, Pune</span><span className="live"><i />Nugen model</span></div>
+            <div><div className="preview-big"><CountUp value={836} />  <small>tCO₂e this year</small></div></div>
+            <div className="preview-bars">
+              {[[2, 'Scope 2', 74], [1, 'Scope 1', 18], [3, 'Scope 3', 8]].map(([sc, l, v], i) => (
+                <div className="pbar" key={l}>
+                  <span>{l}</span>
+                  <div className="pbar-track"><motion.div className="pbar-fill" style={{ background: COLORS[sc] }} initial={{ scaleX: 0 }} animate={{ scaleX: v / 100 }} transition={{ duration: 1.2, delay: 0.9 + i * 0.15, ease: [0.16, 1, 0.3, 1] }} /></div>
+                  <span style={{ textAlign: 'right' }}>{v}%</span>
+                </div>
               ))}
             </div>
-            <div className="hc-rows">
-              <div><i style={{ background: 'var(--s2)' }} />Electricity<b>618 t</b></div>
-              <div><i style={{ background: 'var(--s1)' }} />Fuel and gas<b>147 t</b></div>
-              <div><i style={{ background: 'var(--s3)' }} />Travel, commute, waste<b>71 t</b></div>
+            <div className="preview-row">
+              <div className="mini">2030 gap<b>252 t</b></div>
+              <div className="mini">Peer rank<b>6th %ile</b></div>
+              <div className="mini">Readiness<b>80/100</b></div>
             </div>
-            <motion.div className="hc-msg" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 1.6, duration: 0.6 }}>
-              <span className="hc-face">V</span>
-              <p><b>Volt:</b> You're above 100 kW, so green open access covers 90% of your power with no capex and saves ₹11 L a year.</p>
-            </motion.div>
-          </Tilt>
+            <div className="preview-msg"><span className="face">V</span><span><b>Volt:</b> You're above 100 kW, so green open access is open to you. It covers 90% of your power with no capex.</span></div>
+          </TiltCard>
         </motion.div>
         <a href="#story" className="scroll-cue" aria-label="Scroll to the story"><span /></a>
       </section>
 
+      <section className="logos" aria-label="Standards and frameworks CarbonAI uses">
+        <p>Built on the standards Indian businesses report against</p>
+        <Marquee items={FRAMEWORKS.map(([b, t]) => <div className="chip-lg" key={b}><b>{b}</b>{t}</div>)} />
+        <Marquee reverse speed={46} items={FRAMEWORKS2.map(([b, t]) => <div className="chip-lg" key={b}><b>{b}</b>{t}</div>)} />
+      </section>
+
       <Story />
       <AgentsTrack />
+      <Bento />
       <Paths />
 
       <section className="two-views" id="views">
@@ -261,9 +332,12 @@ export default function Landing() {
         </div>
       </section>
 
-      <section className="cta-end">
-        <h2>Start with last year's bills.</h2>
-        <div className="hero-cta"><Link to="/app/assess" className="btn btn-solid">Measure my footprint</Link></div>
+      <section className="lamp">
+        <motion.h2 initial={{ opacity: 0, y: 60 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.5 }} transition={{ duration: 0.9, ease: [0.16, 1, 0.3, 1] }}>Start with last year's bills.</motion.h2>
+        <div className="hero-cta" style={{ marginTop: 34 }}>
+          <Link to="/app/assess" className="btn btn-solid">Measure my footprint</Link>
+          <BeamButton type="button" onClick={() => { loadSample(); nav('/app/ceo'); }}>Open the demo company</BeamButton>
+        </div>
       </section>
       <footer className="footer"><span>CarbonAI by TerraTech for Indradhanu Hackathon 2026: AI for a Greener Tomorrow</span><span>Factors: CEA v20, IPCC 2006, DEFRA</span></footer>
     </div>
