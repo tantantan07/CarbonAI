@@ -20,7 +20,7 @@ Team TerraTech. Carbon intelligence for Indian businesses: measure Scope 1/2/3, 
 | Justification of the analysis | Every backend module returns a `justification`; agents must answer as **Answer / Why / Next step**; chats show "What data did this use?" |
 | Scroll-based advanced website | `src/pages/Landing.jsx` — Lenis smooth scroll, a pinned scroll-driven carbon column, horizontal agent track, scroll-drawn scenario paths |
 
-Also fixed: the Round-1 `/action-plan` summed raw kWh + litres as "tCO2e"; it now converts with emission factors. The frontend's `/assessment` payload now matches the backend schema.
+Removed in Round 2: Gemini (all AI now goes through Nugen), the Round-1 `/action-plan` endpoint (replaced by the v2 agents), the old client-side PDF export, and the unused frontend zip and assets. Fixed: the frontend's `/assessment` payload now matches the backend schema.
 
 ## Run locally
 

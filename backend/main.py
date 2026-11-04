@@ -3,7 +3,6 @@ from fastapi import FastAPI
 from pydantic import BaseModel
 from supabase import create_client, Client
 from dotenv import load_dotenv
-from ai_service import generate_action_plan
 from emission_engine import resolve_factors, calculate as engine_calculate
 import routes_v2
 
@@ -332,64 +331,5 @@ def get_results(company_id: str, current_user = Depends(get_current_user)):
     if not response.data:
         raise HTTPException(status_code=404, detail="No results found for this company")
     return response.data[0]
-# ---- AI Action Plan ----
 
-@app.get("/action-plan")
-def get_action_plan(current_user=Depends(get_current_user)):
-    user_id = current_user.id
-
-    # Get the user's most recent company
-    company_response = (
-        supabase_admin.table("companies")
-        .select("*")
-        .eq("user_id", user_id)
-        .order("created_at", desc=True)
-        .limit(1)
-        .execute()
-    )
-
-    if not company_response.data:
-        raise HTTPException(
-            status_code=404,
-            detail="No company assessment found"
-        )
-
-    company = company_response.data[0]
-    company_id = company["id"]
-
-    # Get the company's emission entries
-    entries_response = (
-        supabase_admin.table("emission_entries")
-        .select("*")
-        .eq("company_id", company_id)
-        .execute()
-    )
-
-    entries = entries_response.data
-
-    # Convert activity entries into tCO2e per scope (previously raw units were summed)
-    activity = {e["category"]: float(e["value"]) for e in entries}
-    calc = engine_calculate(activity, load_factor_rows(company.get("industry")))
-    scope1 = calc["scope_totals"]["scope1"]
-    scope2 = calc["scope_totals"]["scope2"]
-    scope3 = calc["scope_totals"]["scope3"]
-
-    # Generate the AI action plan
-    action_plan = generate_action_plan(
-        company_name=company["name"],
-        industry=company["industry"],
-        scope1=scope1,
-        scope2=scope2,
-        scope3=scope3,
-    )
-
-    return {
-        "company_id": company_id,
-        "company_name": company["name"],
-        "industry": company["industry"],
-        "scope1": scope1,
-        "scope2": scope2,
-        "scope3": scope3,
-        "action_plan": action_plan,
-    }
-
+# Round-1 /action-plan (Gemini) was replaced by the v2 Nugen agents: POST /v2/agents/{id}/chat and /v2/insights.
