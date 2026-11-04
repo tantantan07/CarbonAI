@@ -533,3 +533,47 @@ input[type='range'] { width: 100%; accent-color: var(--leaf-deep); }
   .aurora i, .fx-beam, .fx-marquee-track { animation: none !important; }
 }
 .hero2::after { content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 160px; z-index: 0; pointer-events: none; background: linear-gradient(transparent, var(--ink)); }
+
+/* ----------------------------------------------------- cinematic fly-through */
+.fly { position: relative; height: 340vh; background: #071a17; }
+.fly-stage { position: sticky; top: 0; height: 100vh; overflow: hidden; display: grid; place-items: center; }
+.fly-scene { position: absolute; left: 50%; top: 50%; width: max(100vw, 160vh); aspect-ratio: 1586 / 992; translate: -50% -50%; transform-origin: 42.5% 22%; will-change: transform; }
+.fly-scene > img:first-child { width: 100%; height: 100%; object-fit: cover; display: block; }
+.fly-globe { position: absolute; left: 57.82%; top: 38%; width: 30.27%; height: auto; will-change: transform; }
+.fly-dim { position: absolute; inset: 0; background: #071a17; pointer-events: none; }
+.fly-vignette { position: absolute; inset: 0; pointer-events: none; background: radial-gradient(ellipse 75% 70% at 50% 50%, transparent 40%, rgba(7,26,23,.85)); }
+.fly-word { position: absolute; inset: 0; display: grid; place-content: center; text-align: center; pointer-events: none; padding: 0 20px; }
+.fly-word h2 { position: relative; font-size: clamp(64px, 15vw, 240px); font-weight: 800; font-stretch: 75%; letter-spacing: -0.04em; line-height: .9; color: #F5F8F4; will-change: transform, filter; }
+.fly-word .solid { position: relative; text-shadow: 0 10px 60px rgba(0,0,0,.45); }
+.fly-word .ghost { position: absolute; inset: 0; color: transparent; -webkit-text-stroke: 1px rgba(245,248,244,.35); }
+.fly-word .ghost.g2 { transform: translate(-1.2%, -6%) scale(1.04); opacity: .35; }
+.fly-word p { margin: 22px auto 0; max-width: 34ch; font-size: clamp(16px, 1.6vw, 21px); color: #E3ECE6; text-shadow: 0 2px 20px rgba(0,0,0,.6); }
+.fly-hint { position: absolute; bottom: 34px; left: 50%; translate: -50% 0; font-size: 13.5px; color: #C9DAD3; letter-spacing: .02em; }
+@media (prefers-reduced-motion: reduce) { .fly { height: auto; } .fly-stage { position: relative; } }
+
+/* ----------------------------------------------------- Earth scroll scene */
+.earth { position: relative; height: 440vh; background: radial-gradient(1200px 800px at 70% 40%, #12373a, var(--ink) 70%); }
+.earth-stage { position: sticky; top: 0; height: 100vh; overflow: hidden; }
+.earth-canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+.earth-vignette { position: absolute; inset: 0; pointer-events: none; background: radial-gradient(ellipse at center, transparent 55%, rgba(8,24,26,.7)); }
+.earth-hero { position: absolute; inset: 0; display: flex; align-items: center; padding: 90px clamp(20px, 5vw, 72px) 40px; z-index: 2; }
+.earth-hero-inner { max-width: 640px; }
+.earth-hero h1 { margin-top: 22px; font-size: clamp(48px, 7vw, 112px); font-stretch: 76%; font-weight: 700; line-height: .92; max-width: 10ch; color: var(--paper-2); }
+.earth-hero h1 .fx-word { background: linear-gradient(180deg, #F5F8F4 35%, #A9D3BE); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.earth-hero .hero-sub { margin-top: 24px; text-shadow: 0 2px 20px rgba(8,24,26,.8); }
+.earth-hero .hero-cta { margin-top: 32px; align-items: center; }
+.earth-cue { display: inline-block; margin-top: 34px; color: #9FB8B0; font-size: 14px; text-decoration: none; border-bottom: 1px solid rgba(159,184,176,.4); padding-bottom: 2px; }
+.earth-phase { position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: center; padding: 0 clamp(20px, 6vw, 96px); pointer-events: none; z-index: 2; will-change: transform, opacity; }
+.earth-phase.center { align-items: center; text-align: center; }
+.earth-phase.left { align-items: flex-start; }
+.mega { font-family: var(--display); font-weight: 800; font-stretch: 72%; font-size: clamp(64px, 14vw, 230px); line-height: .85; letter-spacing: -0.03em;
+  background: linear-gradient(180deg, #FFFFFF 20%, rgba(240,170,110,.85)); -webkit-background-clip: text; background-clip: text; color: transparent;
+  filter: drop-shadow(0 10px 40px rgba(8,24,26,.7)); }
+.mega.green { background: linear-gradient(180deg, #FFFFFF 20%, #7BD389); -webkit-background-clip: text; background-clip: text; }
+.mega-sub { margin-top: 18px; max-width: 34ch; font-size: clamp(17px, 1.6vw, 22px); color: #DCE7E1; text-shadow: 0 2px 18px rgba(8,24,26,.9); }
+.earth-progress { position: absolute; right: 22px; top: 50%; height: 140px; width: 2px; transform: translateY(-50%); background: rgba(233,239,232,.15); border-radius: 2px; z-index: 3; }
+.earth-progress span { display: block; width: 100%; background: var(--leaf); border-radius: 2px; }
+.earth-source { position: absolute; bottom: 10px; left: clamp(20px, 5vw, 72px); font-size: 12px; color: #6F8A82; margin: 0; }
+@media (max-width: 980px) {
+  .earth-hero { align-items: flex-end; padding-bottom: 60px; background: linear-gradient(transparent 30%, rgba(15,43,46,.85) 70%); }
+}

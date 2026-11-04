@@ -1,9 +1,13 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { motion, useMotionValueEvent, useReducedMotion, useScroll, useSpring, useTransform } from 'motion/react';
+import { motion, useMotionTemplate, useMotionValueEvent, useReducedMotion, useScroll, useSpring, useTransform } from 'motion/react';
 import Lenis from 'lenis';
 import { useStore } from '../state/store';
-import { BeamButton, CountUp, Marquee, ParticleField, Spotlight, TextReveal, TiltCard } from '../components/Fx';
+import sceneImg from '../assets/scene.webp';
+import sceneSm from '../assets/scene-sm.webp';
+import globeImg from '../assets/globe.webp';
+import { BeamButton, Marquee, TextReveal, TiltCard } from '../components/Fx';
+import EarthScroll from '../components/EarthScroll';
 
 // Sample company used for the scroll story (same numbers the engine produces for the demo).
 const STORY = [
@@ -78,6 +82,60 @@ function BentoChart() {
         <motion.polyline key={c} points={pts(d)} fill="none" stroke={c} strokeWidth="3" strokeLinecap="round" initial={{ pathLength: 0 }} whileInView={{ pathLength: 1 }} viewport={{ once: true }} transition={{ duration: 1.4, delay: 0.2 + i * 0.2 }} />
       ))}
     </svg>
+  );
+}
+
+const FLY_WORDS = [
+  { word: 'Measure.', cap: 'Every kWh, litre and kilometre your business used last year.', at: [0.04, 0.3] },
+  { word: 'Understand.', cap: 'Scope 1, 2 and 3, explained by seven AI agents in plain words.', at: [0.32, 0.6] },
+  { word: 'Reduce.', cap: 'Cuts that pay for themselves, planned before you spend a rupee.', at: [0.62, 0.9] },
+];
+
+function FlyWord({ p, w }) {
+  const [a, b] = w.at;
+  const m1 = a + (b - a) * 0.25;
+  const m2 = b - (b - a) * 0.25;
+  const opacity = useTransform(p, [a, m1, m2, b], [0, 1, 1, 0]);
+  const scale = useTransform(p, [a, m1, m2, b], [1.35, 1, 1, 0.9]);
+  const ghost = useTransform(p, [a, m1, m2, b], [40, 0, 0, -30]);
+  const ghostX = useMotionTemplate`${ghost}px`;
+  return (
+    <motion.div className="fly-word" style={{ opacity }}>
+      <motion.h2 style={{ scale }} aria-label={w.word}>
+        <motion.span aria-hidden className="ghost g1" style={{ x: ghostX }}>{w.word}</motion.span>
+        <span aria-hidden className="ghost g2">{w.word}</span>
+        <span className="solid">{w.word}</span>
+      </motion.h2>
+      <p>{w.cap}</p>
+    </motion.div>
+  );
+}
+
+function Flythrough() {
+  const ref = useRef(null);
+  const { scrollYProgress: p } = useScroll({ target: ref, offset: ['start start', 'end end'] });
+  const scale = useTransform(p, [0, 1], [1.08, 3.4]);
+  const rotate = useTransform(p, [0, 1], [0, -8]);
+  const dim = useTransform(p, [0, 0.12, 0.85, 1], [0.5, 0.28, 0.4, 1]);
+  const gScale = useTransform(p, [0, 0.5, 0.85], [1, 1.25, 1.1]);
+  const gX = useTransform(p, [0, 0.5, 0.85], ['0%', '-35%', '-10%']);
+  const gY = useTransform(p, [0, 0.5, 0.85], ['0%', '60%', '160%']);
+  const gRot = useTransform(p, [0, 1], [0, 40]);
+  const gOp = useTransform(p, [0, 0.6, 0.8], [1, 1, 0]);
+  const hint = useTransform(p, [0, 0.05], [1, 0]);
+  return (
+    <section className="fly" ref={ref} aria-label="Measure, understand, reduce">
+      <div className="fly-stage">
+        <motion.div className="fly-scene" style={{ scale, rotate }}>
+          <img src={sceneImg} srcSet={`${sceneSm} 960w, ${sceneImg} 1586w`} sizes="100vw" alt="Looking up through a tower of trees at a glass globe" />
+          <motion.img src={globeImg} alt="" className="fly-globe" style={{ scale: gScale, x: gX, y: gY, rotate: gRot, opacity: gOp }} />
+        </motion.div>
+        <motion.div className="fly-dim" style={{ opacity: dim }} />
+        <div className="fly-vignette" />
+        {FLY_WORDS.map((w) => <FlyWord key={w.word} p={p} w={w} />)}
+        <motion.span className="fly-hint" style={{ opacity: hint }}>Keep scrolling</motion.span>
+      </div>
+    </section>
   );
 }
 
@@ -242,18 +300,14 @@ export default function Landing() {
         </nav>
       </header>
 
-      <section className="hero2">
-        <div className="aurora" aria-hidden><i /><i /><i /></div>
-        <div className="grid-bg" aria-hidden />
-        <ParticleField />
-        <Spotlight />
-        <div>
+      <EarthScroll hero={(
+        <div className="earth-hero-inner">
           <motion.span className="badge-pill" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
             <b>New</b> Agents now run on our Nugen-aligned carbon model
           </motion.span>
-          <TextReveal text="Your bills already know your carbon." delay={0.15} />
+          <TextReveal text="The planet keeps the receipts." delay={0.15} />
           <motion.p className="hero-sub" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.7, delay: 0.7 }}>
-            Upload electricity bills and fuel logs. CarbonAI turns them into Scope 1, 2 and 3 emissions, explains every number, and plans cuts that pay for themselves.
+            CarbonAI turns your electricity bills and fuel logs into Scope 1, 2 and 3 emissions, explains every number, and plans the cuts that pay for themselves.
           </motion.p>
           <motion.div className="hero-cta" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.7, delay: 0.85 }}>
             <Link to="/app/assess" className="btn btn-solid">Measure my footprint</Link>
@@ -264,33 +318,9 @@ export default function Landing() {
             <div><b>10</b>climate-tech switches</div>
             <div><b>0.727</b>kg CO₂ per grid kWh (CEA)</div>
           </motion.div>
+          <a href="#story" className="earth-cue">Scroll to see the planet, then your company</a>
         </div>
-
-        <motion.div initial={{ opacity: 0, y: 40, rotateX: 18 }} animate={{ opacity: 1, y: 0, rotateX: 0 }} transition={{ duration: 1.1, delay: 0.3, ease: [0.16, 1, 0.3, 1] }} style={{ perspective: 1200 }}>
-          <TiltCard className="glow-card preview" max={8}>
-            <span className="float-chip a">−556 t with a green PPA</span>
-            <span className="float-chip b">₹11.5 L saved a year</span>
-            <div className="preview-top"><span>Shakti Textiles, Pune</span><span className="live"><i />Nugen model</span></div>
-            <div><div className="preview-big"><CountUp value={836} />  <small>tCO₂e this year</small></div></div>
-            <div className="preview-bars">
-              {[[2, 'Scope 2', 74], [1, 'Scope 1', 18], [3, 'Scope 3', 8]].map(([sc, l, v], i) => (
-                <div className="pbar" key={l}>
-                  <span>{l}</span>
-                  <div className="pbar-track"><motion.div className="pbar-fill" style={{ background: COLORS[sc] }} initial={{ scaleX: 0 }} animate={{ scaleX: v / 100 }} transition={{ duration: 1.2, delay: 0.9 + i * 0.15, ease: [0.16, 1, 0.3, 1] }} /></div>
-                  <span style={{ textAlign: 'right' }}>{v}%</span>
-                </div>
-              ))}
-            </div>
-            <div className="preview-row">
-              <div className="mini">2030 gap<b>252 t</b></div>
-              <div className="mini">Peer rank<b>6th %ile</b></div>
-              <div className="mini">Readiness<b>80/100</b></div>
-            </div>
-            <div className="preview-msg"><span className="face">V</span><span><b>Volt:</b> You're above 100 kW, so green open access is open to you. It covers 90% of your power with no capex.</span></div>
-          </TiltCard>
-        </motion.div>
-        <a href="#story" className="scroll-cue" aria-label="Scroll to the story"><span /></a>
-      </section>
+      )} />
 
       <section className="logos" aria-label="Standards and frameworks CarbonAI uses">
         <p>Built on the standards Indian businesses report against</p>
@@ -298,6 +328,7 @@ export default function Landing() {
         <Marquee reverse speed={46} items={FRAMEWORKS2.map(([b, t]) => <div className="chip-lg" key={b}><b>{b}</b>{t}</div>)} />
       </section>
 
+      <Flythrough />
       <Story />
       <AgentsTrack />
       <Bento />
