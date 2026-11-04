@@ -2,8 +2,8 @@ import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion, useMotionValueEvent, useReducedMotion, useScroll, useSpring, useTransform } from 'motion/react';
 import Lenis from 'lenis';
-import heroImg from '../assets/carbon-ai.png';
 import { useStore } from '../state/store';
+import { CountUp, ParticleField, RevealWords, Tilt } from '../components/Fx';
 
 // Sample company used for the scroll story (same numbers the engine produces for the demo).
 const STORY = [
@@ -64,7 +64,7 @@ function Story() {
   });
 
   return (
-    <section className="story" ref={ref} aria-label="How a year of activity becomes carbon">
+    <section className="story" id="story" ref={ref} aria-label="How a year of activity becomes carbon">
       <div className="story-stage">
         <div className="story-steps">
           {STORY.map((it, i) => (
@@ -119,7 +119,7 @@ function AgentsTrack() {
         </header>
         <motion.div className="agents-track" ref={track} style={{ x }}>
           {AGENTS.map((a) => (
-            <article className="agent-tile" key={a.name}>
+            <article className="agent-tile" key={a.name} style={{ '--agent': a.color }}>
               <div className="agent-face" style={{ background: a.color }}>{a.k}</div>
               <h3>{a.name}</h3>
               <div className="role">{a.role}</div>
@@ -172,7 +172,6 @@ export default function Landing() {
   const { scrollYProgress } = useScroll();
   const nav = useNavigate();
   const { loadSample } = useStore();
-  const heroY = useTransform(scrollYProgress, [0, 0.15], [0, 120]);
 
   return (
     <div className="landing">
@@ -188,19 +187,45 @@ export default function Landing() {
       </header>
 
       <section className="hero">
-        <motion.img src={heroImg} alt="" className="hero-photo" style={{ y: heroY }} />
-        <div>
-          <h1>Your bills already know your carbon.</h1>
-          <p className="hero-sub">Upload electricity bills and fuel logs. CarbonAI turns them into Scope 1, 2 and 3 emissions, explains every number, and plans cuts that pay for themselves.</p>
-          <div className="hero-cta">
-            <Link to="/app/assess" className="btn btn-solid">Measure my footprint</Link>
-            <button type="button" className="btn btn-ghost" onClick={() => { loadSample(); nav('/app/ceo'); }}>Open the demo company</button>
+        <ParticleField />
+        <div className="hero-aura" aria-hidden="true" />
+        <div className="hero-copy">
+          <h1><RevealWords text="Your bills already know your carbon." /></h1>
+          <motion.p className="hero-sub" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.7, duration: 0.8 }}>
+            Upload electricity bills and fuel logs. CarbonAI turns them into Scope 1, 2 and 3 emissions, explains every number, and plans cuts that pay for themselves.
+          </motion.p>
+          <motion.div className="hero-cta" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.9, duration: 0.8 }}>
+            <Link to="/app/assess" className="btn btn-solid btn-lg">Measure my footprint</Link>
+            <button type="button" className="btn btn-ghost btn-lg" onClick={() => { loadSample(); nav('/app/ceo'); }}>Open the demo company</button>
+          </motion.div>
+          <div className="hero-facts">
+            <div><b>0.727 kg</b><span>CO₂ per unit of Indian grid power (CEA FY24)</span></div>
+            <div><b>7 agents</b><span>on a Nugen-aligned carbon model</span></div>
+            <div><b>PDF + Excel</b><span>reports for the CEO and auditors</span></div>
           </div>
         </div>
-        <div className="hero-figure">
-          <div className="big">0.727</div>
-          <p className="cap">kg of CO₂ in every unit of Indian grid electricity (CEA, FY2023-24). Scroll to see where a factory's year goes.</p>
-        </div>
+
+        <motion.div className="hero-card-wrap" initial={{ opacity: 0, y: 40 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4, duration: 1, ease: [0.16, 1, 0.3, 1] }}>
+          <Tilt className="glass hero-card">
+            <div className="hc-top"><span>Shakti Textiles, FY 2025-26</span><span className="live"><i />Nugen model</span></div>
+            <div className="hc-total"><CountUp value={836} /><small>tCO₂e a year</small></div>
+            <div className="hc-bar">
+              {[[147, 'var(--s1)'], [618, 'var(--s2)'], [71, 'var(--s3)']].map(([v, c], i) => (
+                <motion.span key={i} style={{ background: c }} initial={{ width: 0 }} animate={{ width: `${(v / 836) * 100}%` }} transition={{ delay: 0.9 + i * 0.15, duration: 0.9, ease: [0.16, 1, 0.3, 1] }} />
+              ))}
+            </div>
+            <div className="hc-rows">
+              <div><i style={{ background: 'var(--s2)' }} />Electricity<b>618 t</b></div>
+              <div><i style={{ background: 'var(--s1)' }} />Fuel and gas<b>147 t</b></div>
+              <div><i style={{ background: 'var(--s3)' }} />Travel, commute, waste<b>71 t</b></div>
+            </div>
+            <motion.div className="hc-msg" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 1.6, duration: 0.6 }}>
+              <span className="hc-face">V</span>
+              <p><b>Volt:</b> You're above 100 kW, so green open access covers 90% of your power with no capex and saves ₹11 L a year.</p>
+            </motion.div>
+          </Tilt>
+        </motion.div>
+        <a href="#story" className="scroll-cue" aria-label="Scroll to the story"><span /></a>
       </section>
 
       <Story />

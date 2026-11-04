@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Area, CartesianGrid, ComposedChart, Line, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
+import { Area, CartesianGrid, Cell, ComposedChart, Line, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
+import { CountUp, Ring } from '../components/Fx';
 import { useStore } from '../state/store';
 import { inr, SCOPE_HEX, t } from '../lib/format';
 import { Markdown, ModelBadge, ScopeBar, Why } from '../components/Bits';
@@ -26,8 +27,11 @@ export function ForecastChart({ analysis, height = 260 }) {
         <XAxis dataKey="period" tick={{ fontSize: 12 }} />
         <YAxis tick={{ fontSize: 12 }} width={52} />
         <Tooltip formatter={(v) => (Array.isArray(v) ? `${t(v[0])}–${t(v[1])} t` : `${t(v)} t`)} />
-        <Area dataKey="band" name="Likely range" fill="#0F2B2E" fillOpacity={0.08} stroke="none" />
-        <Line dataKey="total" name="Do nothing" stroke="#0F2B2E" strokeWidth={2.5} dot={false} />
+        <defs>
+          <linearGradient id="bandFill" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#F08A4B" stopOpacity={0.28} /><stop offset="100%" stopColor="#F08A4B" stopOpacity={0.04} /></linearGradient>
+        </defs>
+        <Area dataKey="band" name="Likely range" fill="url(#bandFill)" stroke="none" />
+        <Line dataKey="total" name="Do nothing" stroke="#0F2B2E" strokeWidth={2.5} dot={{ r: 3, fill: '#0F2B2E' }} activeDot={{ r: 6 }} />
         <Line dataKey="target" name="1.5 °C pathway" stroke="#2E8B57" strokeDasharray="6 5" strokeWidth={2} dot={false} />
       </ComposedChart>
     </ResponsiveContainer>
@@ -73,12 +77,12 @@ export default function CeoDashboard() {
       <div className="grid g4">
         <div className="panel hero-kpi kpi">
           <span className="l">Footprint this year</span>
-          <span className="v">{t(a.total_tco2e)} t</span>
+          <span className="v"><CountUp value={a.total_tco2e} decimals={1} suffix=" t" /></span>
           <span className="d">80% range {t(a.uncertainty.p10, 0)}–{t(a.uncertainty.p90, 0)} t</span>
         </div>
         <div className="panel kpi">
           <span className="l">Gap to 1.5 °C path in 2030</span>
-          <span className="v" style={{ color: a.target.gap_2030 > 0 ? 'var(--warn)' : 'var(--leaf-deep)' }}>{a.target.gap_2030 > 0 ? `${t(a.target.gap_2030)} t` : 'On track'}</span>
+          <span className="v" style={{ color: a.target.gap_2030 > 0 ? 'var(--warn)' : 'var(--leaf-deep)' }}>{a.target.gap_2030 > 0 ? <CountUp value={a.target.gap_2030} decimals={1} suffix=" t" /> : 'On track'}</span>
           <Why>{a.target.justification}</Why>
         </div>
         <div className="panel kpi">
@@ -87,9 +91,9 @@ export default function CeoDashboard() {
           <span className="d">{combined ? `and −${t(combined.total_abatement_tco2e)} t a year` : ''}</span>
           <Why>All {savingMoves.length} switches that cost nothing or less per tonne, applied together at full rollout so overlaps (for example solar and a green PPA both covering electricity) are not double-counted.</Why>
         </div>
-        <div className="panel kpi">
+        <div className="panel kpi kpi-ring">
           <span className="l">Decarbonisation readiness</span>
-          <span className="v">{a.readiness.score}<small style={{ fontSize: 16 }}>/100</small></span>
+          <Ring value={a.readiness.score} size={96} stroke={9}><b><CountUp value={a.readiness.score} /></b><small>/100</small></Ring>
           <Why>{a.readiness.justification} Data {a.readiness.components.data_completeness}, Scope 3 {a.readiness.components.scope3_coverage}, peers {a.readiness.components.peer_position}, renewables {a.readiness.components.renewable_share}.</Why>
         </div>
       </div>
@@ -120,7 +124,23 @@ export default function CeoDashboard() {
       <div className="grid g2" style={{ marginTop: 16 }}>
         <div className="panel">
           <h2>Where the carbon comes from</h2>
-          <div style={{ margin: '10px 0 14px' }}><ScopeBar scopes={a.scope_totals} total={a.total_tco2e} /></div>
+          <div className="donut-row">
+            <div className="donut">
+              <ResponsiveContainer width="100%" height={170}>
+                <PieChart>
+                  <Pie data={[1, 2, 3].map((n) => ({ name: `Scope ${n}`, value: a.scope_totals[`scope${n}`], n }))} dataKey="value" innerRadius={52} outerRadius={78} paddingAngle={3} stroke="none" startAngle={90} endAngle={-270}>
+                    {[1, 2, 3].map((n) => <Cell key={n} fill={SCOPE_HEX[n]} />)}
+                  </Pie>
+                  <Tooltip formatter={(v) => `${t(v)} t`} />
+                </PieChart>
+              </ResponsiveContainer>
+              <div className="donut-c"><b>{t(a.total_tco2e, 0)}</b><small>tCO₂e</small></div>
+            </div>
+            <div className="donut-legend">{[1, 2, 3].map((n) => (
+              <div key={n}><i style={{ background: SCOPE_HEX[n] }} /><span>Scope {n}</span><b>{Math.round((a.scope_totals[`scope${n}`] / a.total_tco2e) * 100)}%</b></div>
+            ))}</div>
+          </div>
+          <div style={{ margin: '4px 0 14px' }}><ScopeBar scopes={a.scope_totals} total={a.total_tco2e} /></div>
           <table className="data">
             <thead><tr><th>Source</th><th className="num">tCO₂e</th><th className="num">Share</th><th className="num">A 10% cut saves</th></tr></thead>
             <tbody>{a.drivers.map((d) => (

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { Link, NavLink, Outlet } from 'react-router-dom';
+import { Link, NavLink, Outlet, useLocation } from 'react-router-dom';
+import { AnimatePresence, motion } from 'motion/react';
 import { Bot, FileSpreadsheet, FileText, FlaskConical, Gauge, ClipboardList, Scale, ToggleRight } from 'lucide-react';
 import { useStore } from '../state/store';
 import { isAuthenticated, llmStatus, signIn, signOut } from '../services/api';
@@ -42,12 +43,17 @@ function SignIn({ onClose, onDone }) {
 }
 
 export default function AppShell() {
-  const { settings, setSettings, status, error } = useStore();
+  const { settings, setSettings, status, error, profile, analysis } = useStore();
+  const loc = useLocation();
   const [llm, setLlm] = useState(null);
   const [authed, setAuthed] = useState(isAuthenticated());
   const [showSignIn, setShowSignIn] = useState(false);
 
   useEffect(() => { llmStatus().then(setLlm).catch(() => setLlm(null)); }, []);
+  const engineLabel = settings.engine === 'nugen'
+    ? (llm?.nugen?.configured ? 'Nugen aligned model' : 'Nugen not connected')
+    : settings.engine === 'browser-lmstudio' ? 'LM Studio (this computer)' : settings.engine === 'lmstudio' ? 'LM Studio (server)' : 'Ollama (server)';
+  const engineOk = settings.engine !== 'nugen' || llm?.nugen?.configured;
 
   return (
     <div className="shell">
@@ -80,8 +86,22 @@ export default function AppShell() {
         </div>
       </aside>
       <main className="main">
+        <div className="topbar">
+          <div className="company-chip">
+            <span className="cc-mark">{(profile.name || 'C')[0].toUpperCase()}</span>
+            <div><b>{profile.name || 'No company yet'}</b><small>{profile.industry || 'general'}{profile.location ? `, ${profile.location}` : ''}</small></div>
+          </div>
+          <span className="spacer" />
+          {analysis && <span className="pill">{analysis.total_tco2e.toLocaleString('en-IN', { maximumFractionDigits: 0 })} tCO₂e</span>}
+          {status === 'loading' && <span className="pill"><span className="loading-dot" /> Updating</span>}
+          <span className={`pill ${engineOk ? 'ok' : 'warn'}`}><i />{engineLabel}</span>
+        </div>
         {status === 'error' && <div className="banner">Couldn't reach the CarbonAI server ({error}). The free server can take up to a minute to wake up, so try again shortly.</div>}
-        <Outlet />
+        <AnimatePresence mode="wait">
+          <motion.div key={loc.pathname} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1] }}>
+            <Outlet />
+          </motion.div>
+        </AnimatePresence>
       </main>
       {showSignIn && <SignIn onClose={() => setShowSignIn(false)} onDone={() => { setAuthed(true); setShowSignIn(false); }} />}
     </div>
